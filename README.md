@@ -2,9 +2,9 @@
 
 Running large language models on Kubernetes, from the GPU up to the application.
 
-📊 [Portfolio slides (PDF)](docs/portfolio.pdf)
+📊 [Portfolio slides (PDF)](docs/portfolio.pdf) · 📘 [Runbook](docs/runbook.md)
 
-> **Status:** Work in progress. The Kubernetes platform is running; GPU integration and LLM serving on Kubernetes are the next milestones. See [Status](#status).
+> **Status:** Phase 1 complete. An LLM is served on Kubernetes (CPU) through an OpenAI-compatible API. GPU integration is next, waiting on a replacement power supply. See [Status](#status).
 
 ---
 
@@ -25,14 +25,15 @@ flowchart TB
         SLM["Personal small language model"]
     end
     subgraph SERVE["Serving"]
-        VLLM_SYS["vLLM (systemd) ✅"]
-        VLLM_K8S["vLLM on Kubernetes (planned)"]
+        OLLAMA["Ollama on Kubernetes, CPU ✅"]
+        VLLM_GPU["vLLM on GPU (planned)"]
         GW["Gateway API (planned)"]
     end
     subgraph PLAT["Platform"]
         K8S["kubeadm: 1 control + 2 workers ✅"]
         CILIUM["Cilium CNI ✅"]
         HARBOR["Harbor registry ✅"]
+        LOCALPATH["local-path storage ✅"]
         GPUOP["NVIDIA GPU Operator (planned)"]
     end
     subgraph OBS["Observability"]
@@ -42,7 +43,7 @@ flowchart TB
     end
     subgraph HW["Hardware"]
         HOST["HP EliteDesk 800 G6 · KVM ✅"]
-        GPU["RTX A2000 12 GB (reinstall pending)"]
+        GPU["RTX A2000 12 GB (new PSU on order)"]
         NAS["Synology NAS ✅"]
     end
     APP --> SERVE --> PLAT --> HW
@@ -57,16 +58,18 @@ flowchart TB
 | kubeadm cluster | ✅ Running | 1 control plane + 2 workers on KVM VMs |
 | Cilium CNI | ✅ Running | Enforces standard NetworkPolicy |
 | Harbor registry | ✅ Running | Self-hosted image source for the cluster |
-| vLLM (Phi-3-mini-4k-instruct) | ✅ Running | systemd service; OpenAI-compatible API tested from a remote client |
+| LLM serving on Kubernetes (CPU) | ✅ Running | Ollama 0.34.4 + Llama 3.2 3B on a dedicated LLM node (`workload=llm`), image from Harbor |
+| Model storage | ✅ Running | local-path-provisioner; models persist across Pod restarts |
 | Prometheus + Grafana | ✅ Running | Host metrics and custom memory alerting |
-| GPU worker + GPU Operator | 🔜 Next | Waiting on the GPU power fix |
-| vLLM on Kubernetes | 📋 Planned | Deployment, Harbor images, Gateway API |
+| GPU worker + GPU Operator | 🔜 Next | Replacement power supply on order |
+| vLLM on GPU | 📋 Planned | Same OpenAI-compatible API, swapped in on GPU |
+| Gateway API | 📋 Planned | External access through Cilium |
 | GPU and LLM dashboards | 📋 Planned | DCGM exporter and vLLM metrics |
 
 ## Roadmap
 
-- [ ] **Phase 1: GPU in the cluster** — Reinstall the RTX A2000, pass it through to a worker VM, deploy the NVIDIA GPU Operator
-- [ ] **Phase 2: LLM serving on Kubernetes** — Move vLLM to a Deployment, pull images from Harbor, expose it through Gateway API
+- [x] **Phase 1: LLM serving on Kubernetes (CPU)** — Ollama from Harbor, persistent model storage, OpenAI-compatible API verified ([manifests](serving/ollama/))
+- [ ] **Phase 2: GPU in the cluster** — New power supply, RTX A2000 to the LLM node, NVIDIA GPU Operator, vLLM on GPU, Gateway API
 - [ ] **Phase 3: Observability** — DCGM exporter for GPU health, vLLM metrics for latency and throughput, Grafana dashboards
 - [ ] **Phase 4: Benchmarks** — Compare quantization, concurrency and context length on a 12 GB GPU
 - [ ] **Phase 5: Applications** — RAG over recorded sessions and a personal small language model on top of the platform
@@ -98,14 +101,16 @@ Real incidents from building this lab, written the way I wrote L3 support cases.
 .
 ├── README.md
 ├── docs/
-│   └── portfolio.pdf        # Portfolio slides
+│   ├── portfolio.pdf        # Portfolio slides
+│   └── runbook.md           # Operational procedures
+├── serving/
+│   └── ollama/              # Ollama on Kubernetes (Phase 1)
 ├── cluster/                 # kubeadm, Cilium and Harbor setup notes and manifests
-├── serving/                 # vLLM deployment manifests
 ├── observability/           # Prometheus, Grafana dashboards, alert rules
 └── benchmarks/              # Benchmark scripts and results
 ```
 
-> Folders other than `docs/` will be added as each phase is completed.
+> Other folders will be added as each phase is completed.
 
 ## Skills demonstrated
 
@@ -113,7 +118,7 @@ Real incidents from building this lab, written the way I wrote L3 support cases.
 |---|---|
 | Kubernetes administration | kubeadm cluster with Cilium and Harbor; CNCF KCNA |
 | GPU infrastructure | GPU passthrough on KVM, CUDA; NVIDIA NCA-AIIO |
-| LLM serving | vLLM as a managed service with an OpenAI-compatible API |
+| LLM serving | Ollama on Kubernetes with an OpenAI-compatible API |
 | Observability | Prometheus, Grafana and custom alerting in daily use |
 | Troubleshooting | L3 support background; documented troubleshooting log |
 
