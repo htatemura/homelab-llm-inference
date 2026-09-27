@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: llm
+  labels:
+    app: ollama
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # RWO volume: stop the old Pod before starting a new one
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      nodeSelector:
+        workload: llm       # run only on k8s-worker2-llm
+      containers:
+        - name: ollama
+          image: 192.168.68.147/k8s/ollama:0.34.4
+          ports:
+            - name: http
+              containerPort: 11434
+          env:
+            - name: OLLAMA_KEEP_ALIVE
+              value: "30m"  # keep the model loaded between requests
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+            limits:
+              cpu: "6"
+              memory: 16Gi
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ollama-models
