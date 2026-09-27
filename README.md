@@ -119,7 +119,7 @@ Real incidents from building this lab, written the way I wrote L3 support cases.
 
 ## About
 
-**Hito** — Bilingual (Japanese / English) engineer based in Japan, with a background in L3 technical support, professional services and program management for semiconductor process optimization software.
+**Toshi** — Bilingual (Japanese / English) engineer based in Japan, with a background in L3 technical support, professional services and program management for semiconductor process optimization software.
 
 - GitHub: [@htatemura](https://github.com/htatemura)
 - Blog: [blog URL]
