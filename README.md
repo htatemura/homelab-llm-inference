@@ -4,7 +4,7 @@ Running large language models on Kubernetes, from the GPU up to the application.
 
 📊 [Portfolio slides (PDF)](docs/portfolio.pdf) · 📘 [Runbook](docs/runbook.md)
 
-> **Status:** Phase 1 complete. An LLM is served on Kubernetes (CPU) through an OpenAI-compatible API. GPU integration is next, waiting on a replacement power supply. See [Status](#status).
+> **Status:** Phase 1 complete, Phase 2 in progress. The power supply has been replaced and the RTX A2000 is now schedulable from Kubernetes through the NVIDIA device plugin, verified with a test Pod. vLLM on GPU is next. See [Status](#status).
 
 ---
 
@@ -34,7 +34,7 @@ flowchart TB
         CILIUM["Cilium CNI ✅"]
         HARBOR["Harbor registry ✅"]
         LOCALPATH["local-path storage ✅"]
-        GPUOP["NVIDIA GPU Operator (planned)"]
+        GPUDP["NVIDIA device plugin ✅"]
     end
     subgraph OBS["Observability"]
         PROM["Prometheus ✅"]
@@ -43,7 +43,7 @@ flowchart TB
     end
     subgraph HW["Hardware"]
         HOST["HP EliteDesk 800 G6 · KVM ✅"]
-        GPU["RTX A2000 12 GB (new PSU on order)"]
+        GPU["RTX A2000 12 GB, passthrough to LLM node ✅"]
         NAS["Synology NAS ✅"]
     end
     APP --> SERVE --> PLAT --> HW
@@ -61,15 +61,16 @@ flowchart TB
 | LLM serving on Kubernetes (CPU) | ✅ Running | Ollama 0.34.4 + Llama 3.2 3B on a dedicated LLM node (`workload=llm`), image from Harbor |
 | Model storage | ✅ Running | local-path-provisioner; models persist across Pod restarts |
 | Prometheus + Grafana | ✅ Running | Host metrics and custom memory alerting |
-| GPU worker + GPU Operator | 🔜 Next | Replacement power supply on order |
-| vLLM on GPU | 📋 Planned | Same OpenAI-compatible API, swapped in on GPU |
+| GPU worker | ✅ Running | Power supply replaced; RTX A2000 passed through to the LLM node |
+| NVIDIA device plugin | ✅ Running | GPU exposed as `nvidia.com/gpu`; verified with a test Pod |
+| vLLM on GPU | 🔜 Next | Same OpenAI-compatible API, swapped in on GPU |
 | Gateway API | 📋 Planned | External access through Cilium |
 | GPU and LLM dashboards | 📋 Planned | DCGM exporter and vLLM metrics |
 
 ## Roadmap
 
 - [x] **Phase 1: LLM serving on Kubernetes (CPU)** — Ollama from Harbor, persistent model storage, OpenAI-compatible API verified ([manifests](serving/ollama/))
-- [ ] **Phase 2: GPU in the cluster** — New power supply, RTX A2000 to the LLM node, NVIDIA GPU Operator, vLLM on GPU, Gateway API
+- [ ] **Phase 2: GPU in the cluster** — ✅ New power supply · ✅ RTX A2000 to the LLM node · ✅ NVIDIA device plugin, GPU verified with a test Pod · vLLM on GPU · Gateway API
 - [ ] **Phase 3: Observability** — DCGM exporter for GPU health, vLLM metrics for latency and throughput, Grafana dashboards
 - [ ] **Phase 4: Benchmarks** — Compare quantization, concurrency and context length on a 12 GB GPU
 - [ ] **Phase 5: Applications** — RAG over recorded sessions and a personal small language model on top of the platform
@@ -93,7 +94,7 @@ Real incidents from building this lab, written the way I wrote L3 support cases.
 |---|---|---|---|
 | Long-running scripts killed when the remote desktop disconnected | systemd ended the user session (`Linger=no`) | `loginctl enable-linger` | ✅ Fixed |
 | Hardware video acceleration not working on a Haswell machine | Wrong VA-API driver for that GPU generation | Use the `i965` driver instead of `iHD` | ✅ Fixed |
-| Power error on the host after adding the GPU | Suspected: stock 260 W power supply | GPU removed safely; fix in progress | 🔧 Open |
+| Power error on the host after adding the GPU | Stock 260 W power supply | GPU removed safely, power supply replaced, GPU reinstalled | ✅ Fixed |
 
 ## Repository structure
 
@@ -117,7 +118,7 @@ Real incidents from building this lab, written the way I wrote L3 support cases.
 | Skill | Evidence |
 |---|---|
 | Kubernetes administration | kubeadm cluster with Cilium and Harbor; CNCF KCNA |
-| GPU infrastructure | GPU passthrough on KVM, CUDA; NVIDIA NCA-AIIO |
+| GPU infrastructure | GPU passthrough on KVM, GPU scheduling on Kubernetes (NVIDIA device plugin), CUDA; NVIDIA NCA-AIIO |
 | LLM serving | Ollama on Kubernetes with an OpenAI-compatible API |
 | Observability | Prometheus, Grafana and custom alerting in daily use |
 | Troubleshooting | L3 support background; documented troubleshooting log |
